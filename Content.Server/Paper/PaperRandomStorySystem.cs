@@ -17,8 +17,8 @@ public sealed class PaperRandomStorySystem : EntitySystem
 
     private ConcurrentQueue<NFLibraryBook?> _books = new();
     private bool queryRunning = false;
-    private const int cacheSize = 5;
-    private const int cacheRefillThreshold = 2;
+    private const int cacheSize = 50;
+    private const int cacheRefillThreshold = 20;
     // End Wayfarer
 
     public override void Initialize()
