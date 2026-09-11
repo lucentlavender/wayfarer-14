@@ -743,6 +743,14 @@ namespace Content.Server.Database.Migrations.Sqlite
                         .HasColumnType("TEXT")
                         .HasColumnName("date");
 
+                    b.Property<bool>("IsNSFW")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("is_nsf_w");
+
+                    b.Property<bool>("IsPublished")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("is_published");
+
                     b.Property<int>("RoundId")
                         .HasColumnType("INTEGER")
                         .HasColumnName("round_id");
@@ -756,6 +764,11 @@ namespace Content.Server.Database.Migrations.Sqlite
                         .HasMaxLength(128)
                         .HasColumnType("TEXT")
                         .HasColumnName("title");
+
+                    b.Property<string>("Warnings")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("warnings");
 
                     b.HasKey("Id")
                         .HasName("PK_nf_library_book");

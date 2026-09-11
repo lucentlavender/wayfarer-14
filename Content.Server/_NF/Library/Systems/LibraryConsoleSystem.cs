@@ -1,10 +1,9 @@
-using System.Linq;
-using System.Threading.Tasks;
-using Content.Server.Administration.Logs;
 using Content.Server._NF.Library.Components;
+using Content.Server.Administration.Logs; // Wayfarer
 using Content.Server.Database;
-using Content.Shared._NF.Library;
+using Content.Server.GameTicking; // Wayfarer
 using Content.Server.Popups;
+using Content.Shared._NF.Library; // Wayfarer
 using Content.Shared._NF.Library.BUI;
 using Content.Shared._NF.Library.Events;
 using Content.Shared.Containers.ItemSlots;
@@ -12,11 +11,12 @@ using Content.Shared.Database;
 using Content.Shared.Paper;
 using Content.Shared.Power;
 using Robust.Server.GameObjects;
-using Content.Server.GameTicking;
 using Robust.Server.Player;
 using Robust.Shared.Audio.Systems;
 using Robust.Shared.Containers;
 using Robust.Shared.Localization;
+using System.Linq; // Wayfarer
+using System.Threading.Tasks; // Wayfarer
 
 namespace Content.Server._NF.Library.Systems;
 
@@ -48,6 +48,8 @@ public sealed class LibraryConsoleSystem : EntitySystem
         SubscribeLocalEvent<LibraryConsoleComponent, BoundUIOpenedEvent>(OnUiOpened);
         SubscribeLocalEvent<LibraryConsoleComponent, LibraryConsoleUploadBookMessage>(OnUploadBook);
         SubscribeLocalEvent<LibraryConsoleComponent, LibraryConsoleDownloadBookMessage>(OnDownloadBook);
+        SubscribeLocalEvent<LibraryConsoleComponent, LibraryConsoleReUploadBookMessage>(OnReUploadBook); // Wayfarer
+        SubscribeLocalEvent<LibraryConsoleComponent, LibraryConsoleDeleteOwnedBookMessage>(OnDeleteBook); // Wayfarer
         SubscribeLocalEvent<LibraryConsoleComponent, PowerChangedEvent>(OnPowerChanged);
         SubscribeLocalEvent<LibraryConsoleComponent, EntInsertedIntoContainerMessage>(OnSlotChanged);
         SubscribeLocalEvent<LibraryConsoleComponent, EntRemovedFromContainerMessage>(OnSlotChanged);
@@ -76,6 +78,19 @@ public sealed class LibraryConsoleSystem : EntitySystem
         UpdateUiState(ent);
     }
 
+    // Wayfarer
+    private void OnDeleteBook(Entity<LibraryConsoleComponent> ent, ref LibraryConsoleDeleteOwnedBookMessage args)
+    {
+        _ = DeleteBookAsync(ent, args.Id, args.Actor);
+
+    }
+
+    private void OnReUploadBook(Entity<LibraryConsoleComponent> ent, ref LibraryConsoleReUploadBookMessage args)
+    {
+        _ = ReUploadBookAsync(ent, args.Id, args.Content, args.Actor);
+    }
+    // EndWayfarer
+
     private void OnUploadBook(Entity<LibraryConsoleComponent> ent, ref LibraryConsoleUploadBookMessage args)
     {
         if (!_playerManager.TryGetSessionByEntity(args.Actor, out var session))
@@ -92,7 +107,8 @@ public sealed class LibraryConsoleSystem : EntitySystem
 
         if (args.Title.Length > LibraryBookLimits.MaxTitleLength ||
             args.Author.Length > LibraryBookLimits.MaxAuthorLength ||
-            args.Content.Length > LibraryBookLimits.MaxContentLength)
+            args.Content.Length > LibraryBookLimits.MaxContentLength ||
+            args.Warnings.Length > LibraryBookLimits.MaxContentWarningLength) // Wayfarer
         {
             _audio.PlayPvs(ent.Comp.ErrorSound, ent.Owner);
             _popup.PopupEntity(Loc.GetString("library-console-upload-too-long",
@@ -102,17 +118,32 @@ public sealed class LibraryConsoleSystem : EntitySystem
             return;
         }
 
-        var title = args.Title;
-        var author = args.Author;
+        var title = args.Title.Trim(); // Wayfarer
+        var author = args.Author.Trim(); // Wayfarer
         var content = args.Content;
         var authorPlayerUserId = session.UserId.UserId;
         var date = DateTime.UtcNow;
+        // Wayfarer
+        var isNSFW = args.IsNSFW;
+
+        if (title.StartsWith("[NSFW]", StringComparison.InvariantCultureIgnoreCase))
+        {
+            title = title.Substring(6).Trim();
+            if (string.IsNullOrWhiteSpace(title))
+            {
+                _audio.PlayPvs(ent.Comp.ErrorSound, ent.Owner);
+                _popup.PopupEntity(Loc.GetString("library-console-upload-missing-fields"), args.Actor, args.Actor);
+                return;
+            }
+            isNSFW = true;
+        }
+        // End Wayfarer
 
         _audio.PlayPvs(ent.Comp.PrintSound, ent.Owner);
-        _ = AddBookAsync(ent, args.Actor, title, author, content, date, authorPlayerUserId);
+        _ = AddBookAsync(ent, args.Actor, title, author, content, args.Warnings, isNSFW, args.IsPublished, date, authorPlayerUserId); // Wayfarer
     }
 
-    private async Task AddBookAsync(Entity<LibraryConsoleComponent> ent, EntityUid actor, string title, string author, string content, DateTime date, Guid authorPlayerUserId)
+    private async Task AddBookAsync(Entity<LibraryConsoleComponent> ent, EntityUid actor, string title, string author, string content, string warnings, bool isNsfw, bool isPublished, DateTime date, Guid authorPlayerUserId) // Wayfarer
     {
         var server = await _serverDbEntry.ServerEntity;
 
@@ -128,8 +159,7 @@ public sealed class LibraryConsoleSystem : EntitySystem
             return;
         }
 
-        await _dbManager.AddNFLibraryBookAsync(_gameTicker.RoundId, server.Id, title, author, content, date, authorPlayerUserId);
-
+        await _dbManager.AddNFLibraryBookAsync(_gameTicker.RoundId, server.Id, title, author, content, warnings, isNsfw, isPublished, date, authorPlayerUserId); // Wayfarer
         _adminLog.Add(LogType.Action,
             LogImpact.Medium,
             $"{ToPrettyString(actor):player} uploaded book \"{title}\" by \"{author}\" to {ToPrettyString(ent):entity}");
@@ -144,10 +174,23 @@ public sealed class LibraryConsoleSystem : EntitySystem
         _ = DownloadBookAsync(ent, args.BookId);
     }
 
+    // Wayfarer
+    /// <summary>
+    /// Get a random book from the player library
+    /// </summary>
+    /// <param name="count">The minimum number of books. Prevents pulling the same book repeatedly if there are only a few</param>
+    /// <returns></returns>
+    public async Task<List<NFLibraryBook?>> GetRandomPublishedBooksAsync(int count = 1)
+    {
+        return await _dbManager.GetRandomPublishedNFLibraryBooksAsync(count);
+    }
+    // End Wayfarer
+
     private async Task DownloadBookAsync(Entity<LibraryConsoleComponent> ent, int bookId)
     {
-        var books = await _dbManager.GetNFLibraryBooksAsync();
-        var book = books.FirstOrDefault(b => b.Id == bookId);
+        //var books = await _dbManager.GetNFLibraryBooksAsync();
+        //var book = books.FirstOrDefault(b => b.Id == bookId);
+        var book = await _dbManager.GetNFLibraryBookByIdAsync(bookId); // Wayfarer
 
         if (book == null || !EntityManager.EntityExists(ent))
             return;
@@ -160,12 +203,64 @@ public sealed class LibraryConsoleSystem : EntitySystem
         }
 
         _paper.SetContent((bookEntity, paper), book.Content);
-        _metaData.SetEntityName(bookEntity, book.Title);
+        // Wayfarer
+        _metaData.SetEntityName(bookEntity, book.IsNSFW ? Loc.GetString("library-console-download-nsfw-header") + " " + book.Title : book.Title);
+        if (!string.IsNullOrWhiteSpace(book.Warnings))
+        {
+            _metaData.SetEntityDescription(bookEntity, Loc.GetString(book.IsNSFW ? "library-book-warnings-nsfw" : "library-book-warnings", ("warnings", book.Warnings)));
+        }
+        // End Wayfarer
         _audio.PlayPvs(ent.Comp.PrintSound, ent.Owner);
 
         // Refresh UI so the inserted book's content field stays in sync.
         UpdateUiState(ent);
     }
+
+    // Wayfarer
+    private async Task ReUploadBookAsync(Entity<LibraryConsoleComponent> ent, int bookId, string content, EntityUid actor)
+    {
+        var book = await _dbManager.GetNFLibraryBookByIdAsync(bookId);
+
+        if (book == null)
+        {
+            _audio.PlayPvs(ent.Comp.ErrorSound, ent.Owner);
+            return;
+        }
+        if (_playerManager.TryGetSessionByEntity(actor, out var session) && session.UserId == book.AuthorPlayerUserId && await _dbManager.UpdateNFBookContentAsync(bookId, content))
+        {
+            _audio.PlayPvs(ent.Comp.PrintSound, ent.Owner);
+        }
+        else
+        {
+            _audio.PlayPvs(ent.Comp.ErrorSound, ent.Owner);
+        }
+
+        // Refresh UI so the updated book's content field stays in sync.
+        UpdateUiState(ent);
+    }
+
+    private async Task DeleteBookAsync(Entity<LibraryConsoleComponent> ent, int bookId, EntityUid actor)
+    {
+        var book = await _dbManager.GetNFLibraryBookByIdAsync(bookId);
+
+        if (book == null)
+        {
+            _audio.PlayPvs(ent.Comp.ErrorSound, ent.Owner);
+            return;
+        }
+        if (_playerManager.TryGetSessionByEntity(actor, out var session) && session.UserId == book.AuthorPlayerUserId && await _dbManager.DeleteNFLibraryBookAsync(bookId))
+        {
+            _audio.PlayPvs(ent.Comp.PrintSound, ent.Owner);
+        }
+        else
+        {
+            _audio.PlayPvs(ent.Comp.ErrorSound, ent.Owner);
+        }
+
+        // Refresh UI so the deleted book is remvoed.
+        UpdateUiState(ent);
+    }
+    // End Wayfarer
 
     private void OnPowerChanged(Entity<LibraryConsoleComponent> ent, ref PowerChangedEvent args)
     {
@@ -193,8 +288,8 @@ public sealed class LibraryConsoleSystem : EntitySystem
         }
 
         var bookData = books
-            .Select(b => new LibraryBookData(b.Id, b.Title, b.Author, b.Date.ToString("yyyy-MM-dd")))
-            .ToList();
+            .Select(book => new LibraryBookData(book.Id, book.Title, book.Author, book.Date, book.Warnings, book.IsNSFW, book.IsPublished, book.AuthorPlayerUserId)) // Wayfarer
+            .ToList(); // Wayfarer
 
         var state = new LibraryConsoleBoundUserInterfaceState(enabled: true, bookContent, bookData);
         _ui.SetUiState(ent.Owner, LibraryConsoleUiKey.Key, state);

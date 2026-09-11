@@ -411,8 +411,15 @@ namespace Content.Server.Database
         Task<IPIntelCache?> GetIPIntelCache(IPAddress ip);
         Task<bool> CleanIPIntelCache(TimeSpan range);
 
-        Task AddNFLibraryBookAsync(int roundId, int serverId, string title, string author, string content, DateTime date, Guid authorPlayerUserId);
+        Task AddNFLibraryBookAsync(int roundId, int serverId, string title, string author, string content, string warnings, bool isNsfw, bool isPublished, DateTime date, Guid authorPlayerUserId); // Wayfarer
         Task<List<NFLibraryBook>> GetNFLibraryBooksAsync();
+        // Wayfarer
+        Task<NFLibraryBook?> GetNFLibraryBookByIdAsync(int Id);
+        Task<List<NFLibraryBook?>> GetRandomPublishedNFLibraryBooksAsync(int count);
+        Task<bool> UpdateNFBookContentAsync(int bookId, string content);
+        Task<bool> TogglePublishedNFLibraryBookAsync(int bookId);
+        Task<bool> ToggleNSFWNFLibraryBookAsync(int bookId);
+        // End Wayfarer
         Task<bool> DeleteNFLibraryBookAsync(int bookId);
 
         #endregion
@@ -1380,10 +1387,10 @@ namespace Content.Server.Database
             return RunDbCommand(() => _db.CleanIPIntelCache(range));
         }
 
-        public Task AddNFLibraryBookAsync(int roundId, int serverId, string title, string author, string content, DateTime date, Guid authorPlayerUserId)
+        public Task AddNFLibraryBookAsync(int roundId, int serverId, string title, string author, string content, string warnings, bool isNsfw, bool isPublished, DateTime date, Guid authorPlayerUserId) // Wayfarer
         {
             DbWriteOpsMetric.Inc();
-            return RunDbCommand(() => _db.AddNFLibraryBookAsync(roundId, serverId, title, author, content, date, authorPlayerUserId));
+            return RunDbCommand(() => _db.AddNFLibraryBookAsync(roundId, serverId, title, author, content, warnings, isNsfw, isPublished, date, authorPlayerUserId)); // Wayfarer
         }
 
         public Task<List<NFLibraryBook>> GetNFLibraryBooksAsync()
@@ -1392,11 +1399,44 @@ namespace Content.Server.Database
             return RunDbCommand(() => _db.GetNFLibraryBooksAsync());
         }
 
+        public Task<NFLibraryBook?> GetNFLibraryBookByIdAsync(int id)
+        {
+            DbReadOpsMetric.Inc();
+            return RunDbCommand(() => _db.GetNFLibraryBookByIdAsync(id));
+        }
+
+        public Task<List<NFLibraryBook?>> GetRandomPublishedNFLibraryBooksAsync(int count = 1)
+        {
+            DbReadOpsMetric.Inc();
+            return RunDbCommand(() => _db.GetRandomPublishedNFLibraryBooksAsync(count));
+        }
+
+        public Task<bool> UpdateNFBookContentAsync(int bookId, string content)
+        {
+            DbReadOpsMetric.Inc();
+            return RunDbCommand(() => _db.UpdateNFBookContentAsync(bookId, content));
+        }
+
         public Task<bool> DeleteNFLibraryBookAsync(int bookId)
         {
             DbWriteOpsMetric.Inc();
             return RunDbCommand(() => _db.DeleteNFLibraryBookAsync(bookId));
         }
+
+        // Wayfarer
+        public Task<bool> ToggleNSFWNFLibraryBookAsync(int bookId)
+        {
+            DbWriteOpsMetric.Inc();
+            return RunDbCommand(() => _db.ToggleNSFWNFLibraryBookAsync(bookId));
+        }
+
+        public Task<bool> TogglePublishedNFLibraryBookAsync(int bookId)
+        {
+            DbWriteOpsMetric.Inc();
+            return RunDbCommand(() => _db.TogglePublishedNFLibraryBookAsync(bookId));
+        }
+        // End Wayfarer
+
         public Task AddWayfarerRoundSummary(
             int roundNumber,
             DateTime roundStartTime,

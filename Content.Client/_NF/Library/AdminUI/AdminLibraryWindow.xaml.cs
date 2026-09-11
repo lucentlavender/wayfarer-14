@@ -14,6 +14,8 @@ namespace Content.Client._NF.Library.AdminUI;
 public sealed partial class AdminLibraryWindow : DefaultWindow
 {
     public event Action<int>? OnDeleteBook;
+    public event Action<int>? OnChangePublished; // Wayfarer
+    public event Action<int>? OnChangeNSFW; // Wayfarer
 
     private PaperWindow? _bookViewWindow;
     private int? _selectedBookId;
@@ -51,7 +53,23 @@ public sealed partial class AdminLibraryWindow : DefaultWindow
 
             OnDeleteBook?.Invoke(bookId);
         };
+        // Wayfarer
+        PublishButton.OnPressed += _ =>
+        {
+            if (_selectedBookId is not { } bookId)
+                return;
 
+            OnChangePublished?.Invoke(bookId);
+        };
+
+        ChangeNsfwButton.OnPressed += _ =>
+        {
+            if (_selectedBookId is not { } bookId)
+                return;
+
+            OnChangeNSFW?.Invoke(bookId);
+        };
+        // End Wayfarer
         OnClose += () => _bookViewWindow?.Close();
     }
 
@@ -116,7 +134,10 @@ public sealed partial class AdminLibraryWindow : DefaultWindow
         PreviewAuthor.Text = Loc.GetString("library-admin-preview-author", ("author", book.Author));
         PreviewPlayerUserId.Text = Loc.GetString("library-admin-preview-player-user-id", ("playerUserId", FormatUploader(book)));
         PreviewDate.Text = Loc.GetString("library-admin-preview-date", ("date", book.Date));
+        PreviewWarnings.Text = Loc.GetString("library-admin-preview-warnings", ("warnings", book.Warnings)); // Wayfarer
         PreviewContent.Text = book.Content;
+        PreviewNSFW.Visible = book.IsNSFW; // Wayfarer
+        PreviewPublished.Visible = book.IsPublished; // Wayfarer
         PreviewPanel.Visible = true;
     }
 
@@ -133,6 +154,8 @@ public sealed partial class AdminLibraryWindow : DefaultWindow
         var hasSelection = _selectedBookId.HasValue;
         DeleteButton.Disabled = !hasSelection;
         OpenBookViewButton.Disabled = !hasSelection;
+        ChangeNsfwButton.Disabled = !hasSelection; // Wayfarer
+        PublishButton.Disabled = !hasSelection; // Wayfarer
     }
 
     private void OpenBookView()

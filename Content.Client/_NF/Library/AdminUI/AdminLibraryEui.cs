@@ -19,6 +19,8 @@ public sealed class AdminLibraryEui : BaseEui
         _window = new AdminLibraryWindow();
         _window.OnClose += () => SendMessage(new AdminLibraryEuiMsg.Close());
         _window.OnDeleteBook += bookId => SendMessage(new AdminLibraryEuiMsg.DeleteBook(bookId));
+        _window.OnChangeNSFW += bookId => SendMessage(new AdminLibraryEuiMsg.ChangeNSFW(bookId)); // Wayfarer
+        _window.OnChangePublished += bookId => SendMessage(new AdminLibraryEuiMsg.ChangePublished(bookId)); // Wayfarer
     }
 
     public override void Opened()

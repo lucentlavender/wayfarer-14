@@ -46,6 +46,14 @@ public sealed class AdminLibraryEui : BaseEui
             case AdminLibraryEuiMsg.DeleteBook deleteMsg:
                 _ = DeleteBookAsync(deleteMsg.BookId);
                 break;
+            // Wayfarer
+            case AdminLibraryEuiMsg.ChangeNSFW changeMsg:
+                _ = ToggleNSFWAsync(changeMsg.BookId);
+                break;
+            case AdminLibraryEuiMsg.ChangePublished changeMsg:
+                _ = TogglePublishedAsync(changeMsg.BookId);
+                break;
+                // End Wayfarer
         }
     }
 
@@ -65,6 +73,11 @@ public sealed class AdminLibraryEui : BaseEui
                 book.Title,
                 book.Author,
                 book.Content,
+                // Wayfarer
+                book.Warnings,
+                book.IsNSFW,
+                book.IsPublished,
+                // End Wayfarer
                 book.Date.ToString("yyyy-MM-dd"),
                 book.AuthorPlayerUserId,
                 authorPlayerUserName));
@@ -80,4 +93,18 @@ public sealed class AdminLibraryEui : BaseEui
         await _dbManager.DeleteNFLibraryBookAsync(bookId);
         await LoadBooksAsync();
     }
+
+    // Wayfarer
+    private async Task ToggleNSFWAsync(int bookId)
+    {
+        await _dbManager.ToggleNSFWNFLibraryBookAsync(bookId);
+        await LoadBooksAsync();
+    }
+
+    private async Task TogglePublishedAsync(int bookId)
+    {
+        await _dbManager.TogglePublishedNFLibraryBookAsync(bookId);
+        await LoadBooksAsync();
+    }
+    // End Wayfarer
 }

@@ -30,13 +30,23 @@ public sealed class AdminLibraryBookEntry
     public string Date;
     public Guid AuthorPlayerUserId;
     public string AuthorPlayerUserName;
+    // Wayfarer
+    public string Warnings;
+    public bool IsNSFW;
+    public bool IsPublished;
+    // End Wayfarer
 
-    public AdminLibraryBookEntry(int id, string title, string author, string content, string date, Guid authorPlayerUserId, string authorPlayerUserName)
+    public AdminLibraryBookEntry(int id, string title, string author, string content, string warnigns, bool isNsfw, bool isPublished, string date, Guid authorPlayerUserId, string authorPlayerUserName) // Wayfarer
     {
         Id = id;
         Title = title;
         Author = author;
         Content = content;
+        // Wayfarer
+        Warnings = warnigns;
+        IsNSFW = isNsfw;
+        IsPublished = isPublished;
+        // End Wayfarer
         Date = date;
         AuthorPlayerUserId = authorPlayerUserId;
         AuthorPlayerUserName = authorPlayerUserName;
@@ -61,4 +71,28 @@ public static class AdminLibraryEuiMsg
             BookId = bookId;
         }
     }
+
+    // Wayfarer
+    [Serializable, NetSerializable]
+    public sealed class ChangeNSFW: EuiMessageBase
+    {
+        public int BookId { get; }
+
+        public ChangeNSFW(int bookId)
+        {
+            BookId = bookId;
+        }
+    }
+
+    [Serializable, NetSerializable]
+    public sealed class ChangePublished : EuiMessageBase
+    {
+        public int BookId { get; }
+
+        public ChangePublished(int bookId)
+        {
+            BookId = bookId;
+        }
+    }
+    // End Wayfarer
 }

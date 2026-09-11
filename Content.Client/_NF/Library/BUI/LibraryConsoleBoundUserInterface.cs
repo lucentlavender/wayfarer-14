@@ -18,11 +18,25 @@ public sealed class LibraryConsoleBoundUserInterface(EntityUid owner, Enum uiKey
         _menu = this.CreateWindow<LibraryConsoleMenu>();
         _menu.UploadBookRequested += OnUploadBook;
         _menu.DownloadBookRequested += OnDownloadBook;
+        _menu.ReUploadBookRequested += OnReUploadBook; // Wayfarer
+        _menu.DeleteBookRequested += OnDeleteBook; // Wayfarer
     }
 
-    private void OnUploadBook(string title, string author, string content)
+    // Wayfarer
+    private void OnDeleteBook(int id)
     {
-        SendMessage(new LibraryConsoleUploadBookMessage(title, author, content));
+        SendMessage(new LibraryConsoleDeleteOwnedBookMessage(id));
+    }
+
+    private void OnReUploadBook(int id, string content)
+    {
+        SendMessage(new LibraryConsoleReUploadBookMessage(id, content));
+    }
+    // End Wayfarer
+
+    private void OnUploadBook(string title, string author, string content, string warnings, bool isNsfw, bool published) // Wayfarer
+    {
+        SendMessage(new LibraryConsoleUploadBookMessage(title, author, content, warnings, isNsfw, published)); // Wayfarer
     }
 
     private void OnDownloadBook(int bookId)

@@ -2048,6 +2048,22 @@ namespace Content.Server.Database
         /// Guid of the player who uploaded the book
         /// </summary>
         [Required] public Guid AuthorPlayerUserId { get; set; }
+        // Wayfarer
+        /// <summary>
+        /// What sort of content the book might contain
+        /// </summary>
+        [Required] public string Warnings { get; set; }
+        // Wayfarer
+        /// <summary>
+        /// Whether the book contains NSFW content
+        /// </summary>
+        [Required] public bool IsNSFW { get; set; }
+        // Wayfarer
+        /// <summary>
+        /// Whether the book should be published to in-world books
+        /// </summary>
+        [Required] public bool IsPublished { get; set; }
+        // End Wayfarer
     }
     //End Frontier
 }

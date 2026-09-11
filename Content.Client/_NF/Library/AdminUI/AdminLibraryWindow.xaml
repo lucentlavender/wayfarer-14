@@ -34,6 +34,11 @@
                 <Label Name="PreviewAuthor" Text="" HorizontalAlignment="Left" />
                 <Label Name="PreviewPlayerUserId" Text="" HorizontalAlignment="Left" />
                 <Label Name="PreviewDate" Text="" HorizontalAlignment="Left" />
+                <!-- Wayfarer -->
+                <Label Name="PreviewWarnings" Text="" HorizontalAlignment="Left" />
+                <Label Name="PreviewNSFW" Text="{Loc library-admin-nsfw}" HorizontalAlignment="Left" />
+                <Label Name="PreviewPublished" Text="{Loc library-admin-published}" HorizontalAlignment="Left" />
+                <!-- End Wayfarer -->
                 <Control MinHeight="4" />
                 <ScrollContainer MaxHeight="120" HorizontalExpand="True">
                     <Label Name="PreviewContent"
@@ -55,7 +60,16 @@
                 Text="{Loc library-admin-delete-button}"
                 HorizontalExpand="True"
                 Disabled="True" />
+            <!-- Wayfarer -->
+            <Button Name="ChangeNsfwButton"
+                Text="{Loc library-admin-nsfw-button}"
+                HorizontalExpand="True"
+                Disabled="True" />
+            <Button Name="PublishButton"
+                Text="{Loc library-admin-unpublish-button}"
+                HorizontalExpand="True"
+                Disabled="True" />
+            <!-- End Wayfarer -->
         </BoxContainer>
-
     </BoxContainer>
 </DefaultWindow>

@@ -2123,6 +2123,11 @@ INSERT INTO player_round (players_id, rounds_id) VALUES ({players[player]}, {id}
             string title,
             string author,
             string content,
+            // Wayfarer
+            string warnings,
+            bool isNsfw,
+            bool isPublished,
+            // End Wayfarer
             DateTime date,
             Guid authorPlayerUserId)
         {
@@ -2144,6 +2149,11 @@ INSERT INTO player_round (players_id, rounds_id) VALUES ({players[player]}, {id}
                 Title = title,
                 Author = author,
                 Content = content,
+                // Wayfarer
+                Warnings = warnings,
+                IsNSFW = isNsfw,
+                IsPublished = isPublished,
+                // End Wayfarer
                 Date = date,
                 AuthorPlayerUserId = authorPlayerUserId,
             });
@@ -2157,6 +2167,53 @@ INSERT INTO player_round (players_id, rounds_id) VALUES ({players[player]}, {id}
             return await db.DbContext.NFLibraryBook
                 .ToListAsync();
         }
+
+        // Wayfarer
+        public async Task<NFLibraryBook?> GetNFLibraryBookByIdAsync(int id)
+        {
+            await using var db = await GetDb();
+
+            return await db.DbContext.NFLibraryBook
+                .FirstOrDefaultAsync(x => x.Id == id);
+        }
+
+        public async Task<List<NFLibraryBook?>> GetRandomPublishedNFLibraryBooksAsync(int count = 1)
+        {
+            await using var db = await GetDb();
+
+            List<NFLibraryBook?> books = await db.DbContext.NFLibraryBook
+                .Where(x => x.IsPublished)
+                .OrderBy(x => EF.Functions.Random()) // Order randomly
+                .Take(count) // Select random
+                .Cast<NFLibraryBook?>()
+                .ToListAsync();
+            // Pad list until it reaches required length
+            var random = new Random();
+            while (books.Count < count)
+            {
+                books.Add(null);
+                books.Add(books.RemoveSwap(random.Next(books.Count))); // Shuffle new element randomly
+            }
+            return books;
+        }
+
+        public async Task<bool> UpdateNFBookContentAsync(int bookId, string content)
+        {
+            await using var db = await GetDb();
+
+            var book = await db.DbContext.NFLibraryBook
+                .FirstOrDefaultAsync(x => x.Id == bookId);
+
+            if (book == null)
+            {
+                return false;
+            }
+
+            book.Content = content;
+            await db.DbContext.SaveChangesAsync();
+            return true;
+        }
+        // End Wayfarer
 
         public async Task<bool> DeleteNFLibraryBookAsync(int bookId)
         {
@@ -2172,6 +2229,40 @@ INSERT INTO player_round (players_id, rounds_id) VALUES ({players[player]}, {id}
             await db.DbContext.SaveChangesAsync();
             return true;
         }
+
+        // Wayfarer
+        public async Task<bool> ToggleNSFWNFLibraryBookAsync(int bookId)
+        {
+            await using var db = await GetDb();
+
+            var book = await db.DbContext.NFLibraryBook
+                .SingleOrDefaultAsync(b => b.Id == bookId);
+
+            if (book == null)
+                return false;
+
+            book.IsNSFW = !book.IsNSFW;
+
+            await db.DbContext.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<bool> TogglePublishedNFLibraryBookAsync(int bookId)
+        {
+            await using var db = await GetDb();
+
+            var book = await db.DbContext.NFLibraryBook
+                .SingleOrDefaultAsync(b => b.Id == bookId);
+
+            if (book == null)
+                return false;
+
+            book.IsPublished = !book.IsPublished;
+
+            await db.DbContext.SaveChangesAsync();
+            return true;
+        }
+        // End Wayfarer
 
         #endregion Library
 
