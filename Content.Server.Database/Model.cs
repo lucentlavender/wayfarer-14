@@ -2052,7 +2052,7 @@ namespace Content.Server.Database
         /// <summary>
         /// What sort of content the book might contain
         /// </summary>
-        [Required] public string Warnings { get; set; }
+        [Required] public string Warnings { get; set; } = "";
         // Wayfarer
         /// <summary>
         /// Whether the book contains NSFW content
